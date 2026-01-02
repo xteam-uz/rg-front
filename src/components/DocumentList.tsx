@@ -62,7 +62,16 @@ export default function DocumentList() {
             });
 
             if (!response.ok) {
-                throw new Error('PDF yuklab olishda xatolik');
+                // Server javobidan xatolik xabarini olishga harakat qilish
+                let errorMessage = `PDF yuklab olishda xatolik (${response.status})`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } catch {
+                    // JSON parse qila olmasa, status textni ishlatish
+                    errorMessage = response.statusText || errorMessage;
+                }
+                throw new Error(errorMessage);
             }
 
             const blob = await response.blob();

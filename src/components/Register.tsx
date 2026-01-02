@@ -141,7 +141,7 @@ export default function Register() {
             id="floating_first_name"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2
                                border-gray-300 appearance-none focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-            placeholder=" "
+            placeholder="John"
             defaultValue={telegramUser?.first_name || ""}
           />
           <label
@@ -167,7 +167,7 @@ export default function Register() {
             id="floating_last_name"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2
                                border-gray-300 appearance-none focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-            placeholder=" "
+            placeholder="Doe"
             defaultValue={telegramUser?.last_name || ""}
           />
           <label
@@ -195,7 +195,7 @@ export default function Register() {
             id="floating_username"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2
                                border-gray-300 appearance-none focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-            placeholder=" "
+            placeholder="username"
             defaultValue={telegramUser?.username || ""}
           />
           <label
@@ -223,7 +223,7 @@ export default function Register() {
             id="floating_email"
             className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2
                                border-gray-300 appearance-none focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-            placeholder=" "
+            placeholder="example@example.com"
           />
           <label
             htmlFor="floating_email"
