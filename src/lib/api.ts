@@ -77,8 +77,22 @@ apiClient.interceptors.response.use(
             throw new Error(message);
         } else if (error.request) {
             // So'rov yuborildi, lekin javob kelmadi
-            const errorMessage = `Network error: Backend ga ulanib bo'lmadi. API URL: ${API_BASE_URL}`;
-            console.error(errorMessage, error);
+            // Bu CORS muammosi yoki backend ishlamayapti
+            const isCorsError = error.message?.includes('CORS') ||
+                error.message?.includes('cors') ||
+                error.code === 'ERR_NETWORK';
+
+            let errorMessage = `Network error: Backend ga ulanib bo'lmadi. API URL: ${API_BASE_URL}`;
+            if (isCorsError) {
+                errorMessage += '\nEhtimol CORS muammosi. Backend CORS sozlamalarini tekshiring.';
+            }
+
+            console.error('Network Error Details:', {
+                message: error.message,
+                code: error.code,
+                config: error.config,
+                request: error.request
+            });
             throw new Error(errorMessage);
         } else {
             // So'rovni sozlashda xatolik
