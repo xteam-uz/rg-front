@@ -1,8 +1,23 @@
 // API helper functions - Backend bilan ishlash uchun axios orqali
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 
+// Backend URL ni sozlash
+const getBackendUrl = (apiUrl?: string): string => {
+    if (!apiUrl) return 'http://localhost:8001';
+
+    try {
+        const url = new URL(apiUrl);
+        // /api ni oxiridan olib tashlash
+        url.pathname = url.pathname.replace(/\/api\/?$/, '');
+        return url.toString().replace(/\/$/, ''); // oxiridagi / ni olib tashlash
+    } catch {
+        // URL parsing xatolik bo'lsa, eski usulni ishlatish
+        return apiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+    }
+};
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || getBackendUrl(process.env.NEXT_PUBLIC_API_URL);
 
 // Storage file URL helper
 export function getStorageUrl(path: string): string {
@@ -62,7 +77,9 @@ apiClient.interceptors.response.use(
             throw new Error(message);
         } else if (error.request) {
             // So'rov yuborildi, lekin javob kelmadi
-            throw new Error('Network error: Backend ga ulanib bo\'lmadi');
+            const errorMessage = `Network error: Backend ga ulanib bo'lmadi. API URL: ${API_BASE_URL}`;
+            console.error(errorMessage, error);
+            throw new Error(errorMessage);
         } else {
             // So'rovni sozlashda xatolik
             throw new Error(error.message || 'Xatolik yuz berdi');
