@@ -16,14 +16,14 @@ export interface User {
 
 export interface LoginDto {
     telegram_user_id: number;
-    first_name: string;
-    last_name: string;
+    first_name?: string;
+    last_name?: string;
 }
 
 export interface RegisterDto {
     telegram_user_id: number;
-    first_name: string;
-    last_name: string;
+    first_name?: string;
+    last_name?: string;
     username?: string;
     email?: string;
 }

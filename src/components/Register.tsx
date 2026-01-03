@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { register, clearError } from '@/store/slices/authSlice';
+import { register, login, clearError } from '@/store/slices/authSlice';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getUserData } from '@/lib/tgInit';
@@ -18,12 +18,14 @@ const errorTranslations: Record<string, string> = {
     "Ism kamida 3 ta harfdan iborat bo'lishi kerak.",
   "The last name field must be at least 3 characters.":
     "Familiya kamida 3 ta harfdan iborat bo'lishi kerak.",
-  "The first name field is required.": "Ism maydoni to'ldirilishi shart.",
-  "The last name field is required.": "Familiya maydoni to'ldirilishi shart.",
   "The telegram user id field is required.":
     "Telegram foydalanuvchi IDsi topilmadi.",
   "The telegram user id has already been taken.":
     "Bu Telegram foydalanuvchi allaqachon ro'yxatdan o'tgan.",
+  "The username has already been taken.":
+    "Bu username allaqachon ishlatilgan.",
+  "The email has already been taken.":
+    "Bu email allaqachon ishlatilgan.",
 };
 
 const translateError = (error: string): string => {
@@ -76,24 +78,71 @@ export default function Register() {
       return;
     }
 
-    const payload = {
+    // Faqat telegram_user_id required, qolgan maydonlar ixtiyoriy
+    const payload: any = {
       telegram_user_id: Number(telegramUser.id),
-      first_name: firstNameRef.current?.value || telegramUser?.first_name || '',
-      last_name: lastNameRef.current?.value || telegramUser?.last_name || '',
-      username: usernameRef.current?.value || telegramUser?.username || undefined,
-      email: emailRef.current?.value || undefined,
     };
 
+    // Faqat to'ldirilgan maydonlarni qo'shish
+    const firstName = firstNameRef.current?.value?.trim() || telegramUser?.first_name?.trim();
+    const lastName = lastNameRef.current?.value?.trim() || telegramUser?.last_name?.trim();
+    const username = usernameRef.current?.value?.trim() || telegramUser?.username?.trim();
+    const email = emailRef.current?.value?.trim();
+
+    if (firstName) payload.first_name = firstName;
+    if (lastName) payload.last_name = lastName;
+    if (username) payload.username = username;
+    if (email) payload.email = email;
+
+    // Avval register qilishga harakat qilish
     const result = await dispatch(register(payload));
 
     if (register.rejected.match(result)) {
       const errorPayload = result.payload as any;
-      if (errorPayload?.errors) {
-        setErrors(errorPayload.errors);
-      } else if (errorPayload?.data?.errors) {
-        setErrors(errorPayload.data.errors);
+      const errorMessage = typeof errorPayload === 'string' ? errorPayload : errorPayload?.message || '';
+
+      // Xatoliklar obyektini tekshirish
+      const errorsObj = errorPayload?.errors || errorPayload?.data?.errors || {};
+      const telegramUserIdError = errorsObj.telegram_user_id?.[0] || '';
+
+      // Agar foydalanuvchi allaqachon ro'yxatdan o'tgan bo'lsa, login qilishga harakat qilish
+      if (
+        errorMessage.includes('already been taken') ||
+        errorMessage.includes('allaqachon ro\'yxatdan o\'tgan') ||
+        errorMessage.includes('already exists') ||
+        telegramUserIdError.includes('already been taken') ||
+        telegramUserIdError.includes('allaqachon')
+      ) {
+        // Login uchun minimal ma'lumotlar (telegram_user_id va ixtiyoriy first_name, last_name)
+        const loginPayload: any = {
+          telegram_user_id: Number(telegramUser.id),
+        };
+
+        if (firstName) loginPayload.first_name = firstName;
+        if (lastName) loginPayload.last_name = lastName;
+
+        const loginResult = await dispatch(login(loginPayload));
+
+        if (login.rejected.match(loginResult)) {
+          const loginErrorPayload = loginResult.payload as any;
+          if (loginErrorPayload?.errors) {
+            setErrors(loginErrorPayload.errors);
+          } else if (loginErrorPayload?.data?.errors) {
+            setErrors(loginErrorPayload.data.errors);
+          } else {
+            setErrors({ general: [loginErrorPayload || 'Kirishda xatolik yuz berdi'] });
+          }
+        }
+        // Login muvaffaqiyatli bo'lsa, useEffect orqali redirect qilinadi
       } else {
-        setErrors({ general: [errorPayload || 'Xatolik yuz berdi'] });
+        // Boshqa xatoliklar
+        if (errorPayload?.errors) {
+          setErrors(errorPayload.errors);
+        } else if (errorPayload?.data?.errors) {
+          setErrors(errorPayload.data.errors);
+        } else {
+          setErrors({ general: [errorMessage || 'Xatolik yuz berdi'] });
+        }
       }
     }
   };
@@ -151,7 +200,7 @@ export default function Register() {
                                peer-focus:text-blue-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0
                                peer-focus:scale-75 peer-focus:-translate-y-6"
           >
-            Ism
+            Ism (ixtiyoriy)
           </label>
           {errors.first_name && (
             <p className="text-red-500 text-xs mt-1">
@@ -177,7 +226,7 @@ export default function Register() {
                                peer-focus:text-blue-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0
                                peer-focus:scale-75 peer-focus:-translate-y-6"
           >
-            Familiya
+            Familiya (ixtiyoriy)
           </label>
           {errors.last_name && (
             <p className="text-red-500 text-xs mt-1">
