@@ -92,6 +92,7 @@ export interface Document {
     user_id: number;
     document_type: DocumentType;
     status: string;
+    pdf_path?: string | null;
     created_at: string;
     updated_at: string;
     personal_information?: PersonalInformation;

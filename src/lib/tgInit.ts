@@ -44,3 +44,33 @@ export const hello = () => {
     if (!WebApp) return;
     WebApp.showAlert("Hey there!");
 };
+
+export const showNotification = (message: string) => {
+    const WebApp = getWebApp();
+    if (!WebApp) return;
+    // Telegram WebApp API da showNotification mavjud bo'lsa ishlatish
+    if (typeof WebApp.showNotification === 'function') {
+        WebApp.showNotification(message);
+    } else {
+        // Fallback: showAlert ishlatish
+        WebApp.showAlert(message);
+    }
+};
+
+export const downloadFile = (url: string, filename: string) => {
+    const WebApp = getWebApp();
+    if (!WebApp) {
+        // Telegram WebApp bo'lmasa, oddiy browser download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+    }
+    
+    // Telegram WebApp da fayl yuklash
+    // openLink metodi Telegram da faylni yuklab olish uchun ishlatiladi
+    WebApp.openLink(url);
+};

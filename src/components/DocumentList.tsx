@@ -6,6 +6,8 @@ import { useDocuments, useDeleteDocument } from '@/lib/queries/documents';
 import { Document } from '@/lib/types';
 import { useAppSelector } from '@/store/hooks';
 import { useRouter } from 'next/navigation';
+import { downloadFile, showNotification } from '@/lib/tgInit';
+import { getStorageUrl } from '@/lib/api';
 
 export default function DocumentList() {
     const router = useRouter();
@@ -52,7 +54,82 @@ export default function DocumentList() {
                 return;
             }
 
+            // Document ma'lumotlarini topish
+            const doc = documents.find((doc: Document) => doc.id === id);
+
+            // Telegram WebApp mavjudligini tekshirish
+            const isTelegramWebApp = typeof window !== 'undefined' &&
+                (window as any).Telegram?.WebApp;
+
+            // Agar PDF allaqachon saqlangan bo'lsa, public URL dan foydalanish
+            // Bu Telegram WebApp da yaxshi ishlaydi
+            if (doc?.pdf_path) {
+                const publicUrl = getStorageUrl(doc.pdf_path);
+
+                // Telegram WebApp uchun maxsus yondashuv
+                if (isTelegramWebApp) {
+                    // Telegram WebApp da: blob orqali yuklab olish (telefonga saqlash uchun)
+                    try {
+                        const response = await fetch(publicUrl);
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+
+                        // Telegram WebApp da faylni yuklab olish
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = `document_${id}.pdf`;
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.click();
+
+                        // Bildirishnoma ko'rsatish
+                        showNotification('Yuklandi');
+
+                        // Tozalash
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(blobUrl);
+                            if (document.body.contains(a)) {
+                                document.body.removeChild(a);
+                            }
+                        }, 1000);
+                    } catch (error) {
+                        console.error('Download error:', error);
+                        // Fallback: to'g'ridan-to'g'ri URL dan yuklab olish
+                        const a = document.createElement('a');
+                        a.href = publicUrl;
+                        a.download = `document_${id}.pdf`;
+                        a.target = '_blank';
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.click();
+                        showNotification('Yuklandi');
+                        setTimeout(() => {
+                            if (document.body.contains(a)) {
+                                document.body.removeChild(a);
+                            }
+                        }, 100);
+                    }
+                } else {
+                    // Oddiy browser uchun: standart download
+                    const a = document.createElement('a');
+                    a.href = publicUrl;
+                    a.download = `document_${id}.pdf`;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    alert('Yuklandi');
+                    setTimeout(() => {
+                        if (document.body.contains(a)) {
+                            document.body.removeChild(a);
+                        }
+                    }, 100);
+                }
+                return;
+            }
+
+            // PDF hali saqlanmagan bo'lsa, API orqali yaratish va yuklab olish
             const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
+
             const response = await fetch(`${API_BASE_URL}/documents/${id}/download`, {
                 method: 'GET',
                 headers: {
@@ -62,13 +139,11 @@ export default function DocumentList() {
             });
 
             if (!response.ok) {
-                // Server javobidan xatolik xabarini olishga harakat qilish
                 let errorMessage = `PDF yuklab olishda xatolik (${response.status})`;
                 try {
                     const errorData = await response.json();
                     errorMessage = errorData.message || errorData.error || errorMessage;
                 } catch {
-                    // JSON parse qila olmasa, status textni ishlatish
                     errorMessage = response.statusText || errorMessage;
                 }
                 throw new Error(errorMessage);
@@ -79,10 +154,24 @@ export default function DocumentList() {
             const a = document.createElement('a');
             a.href = url;
             a.download = `document_${id}.pdf`;
+            a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+
+            // Bildirishnoma ko'rsatish
+            if (isTelegramWebApp) {
+                showNotification('Yuklandi');
+            } else {
+                alert('Yuklandi');
+            }
+
+            // Tozalash
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                if (document.body.contains(a)) {
+                    document.body.removeChild(a);
+                }
+            }, 100);
         } catch (error) {
             console.error('Download error:', error);
             alert('Xatolik: ' + (error instanceof Error ? error.message : 'PDF yuklab olishda xatolik'));
