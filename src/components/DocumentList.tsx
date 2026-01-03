@@ -2,15 +2,17 @@
 
 // CLIENT COMPONENT - TanStack Query bilan server-side data fetching
 
-import { useDocuments, useDeleteDocument } from '@/lib/queries/documents';
+import { useDocuments, useDeleteDocument, documentKeys } from '@/lib/queries/documents';
 import { Document } from '@/lib/types';
 import { useAppSelector } from '@/store/hooks';
 import { useRouter } from 'next/navigation';
 import { downloadFile, showNotification } from '@/lib/tgInit';
 import { getStorageUrl } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function DocumentList() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { data: documents = [], isLoading, error } = useDocuments();
     const deleteMutation = useDeleteDocument();
     const { isAuthenticated, token } = useAppSelector((state) => state.auth);
@@ -149,29 +151,120 @@ export default function DocumentList() {
                 throw new Error(errorMessage);
             }
 
+            // Blob ni avval olish (fallback uchun)
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+
+            // Document listini yangilash (PDF path ni olish uchun)
+            await queryClient.invalidateQueries({ queryKey: documentKeys.lists() });
+
+            // Kichik kutish va keyin yangilangan document ni olish
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Yangilangan document ni olish
+            const updatedDoc = documents.find((doc: Document) => doc.id === id) ||
+                (await queryClient.fetchQuery({
+                    queryKey: documentKeys.detail(id),
+                    queryFn: async () => {
+                        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
+                        const docResponse = await fetch(`${API_BASE_URL}/documents/${id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                            },
+                        });
+                        const docData = await docResponse.json();
+                        return docData.data;
+                    },
+                }));
+
+            // Agar PDF path mavjud bo'lsa, public URL dan yuklab olish
+            if (updatedDoc?.pdf_path) {
+                const publicUrl = getStorageUrl(updatedDoc.pdf_path);
+
+                if (isTelegramWebApp) {
+                    // Telegram WebApp da: public URL dan to'g'ridan-to'g'ri yuklab olish
+                    // Telegram WebApp'da download atributi ishlamasligi mumkin,
+                    // shuning uchun openLink yoki to'g'ridan-to'g'ri URL dan foydalanamiz
+                    const webApp = (window as any).Telegram.WebApp;
+
+                    // Birinchi: anchor element bilan sinab ko'ramiz
+                    const a = document.createElement('a');
+                    a.href = publicUrl;
+                    a.download = `document_${id}.pdf`;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+
+                    // Muqobil: blob URL dan yuklab olish
+                    setTimeout(async () => {
+                        try {
+                            const publicResponse = await fetch(publicUrl);
+                            const publicBlob = await publicResponse.blob();
+                            const blobUrl = window.URL.createObjectURL(publicBlob);
+
+                            const a2 = document.createElement('a');
+                            a2.href = blobUrl;
+                            a2.download = `document_${id}.pdf`;
+                            a2.style.display = 'none';
+                            document.body.appendChild(a2);
+                            a2.click();
+
+                            setTimeout(() => {
+                                window.URL.revokeObjectURL(blobUrl);
+                                if (document.body.contains(a2)) {
+                                    document.body.removeChild(a2);
+                                }
+                            }, 2000);
+                        } catch (error) {
+                            console.error('Blob download error:', error);
+                        }
+                    }, 100);
+
+                    showNotification('Yuklandi');
+
+                    setTimeout(() => {
+                        if (document.body.contains(a)) {
+                            document.body.removeChild(a);
+                        }
+                    }, 2000);
+                } else {
+                    // Oddiy browser: public URL dan yuklab olish
+                    const a = document.createElement('a');
+                    a.href = publicUrl;
+                    a.download = `document_${id}.pdf`;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    alert('Yuklandi');
+                    setTimeout(() => {
+                        if (document.body.contains(a)) {
+                            document.body.removeChild(a);
+                        }
+                    }, 100);
+                }
+                return;
+            }
+
+            // Agar PDF path hali mavjud bo'lmasa, blob orqali yuklab olish
+            const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
+            a.href = blobUrl;
             a.download = `document_${id}.pdf`;
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
 
-            // Bildirishnoma ko'rsatish
             if (isTelegramWebApp) {
                 showNotification('Yuklandi');
             } else {
                 alert('Yuklandi');
             }
 
-            // Tozalash
             setTimeout(() => {
-                window.URL.revokeObjectURL(url);
+                window.URL.revokeObjectURL(blobUrl);
                 if (document.body.contains(a)) {
                     document.body.removeChild(a);
                 }
-            }, 100);
+            }, 2000);
         } catch (error) {
             console.error('Download error:', error);
             alert('Xatolik: ' + (error instanceof Error ? error.message : 'PDF yuklab olishda xatolik'));
