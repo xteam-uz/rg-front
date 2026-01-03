@@ -227,28 +227,6 @@ export default function DocumentList() {
                 alert('Yuklandi');
             }
 
-            // Document listini yangilash (PDF path ni olish uchun)
-            await queryClient.invalidateQueries({ queryKey: documentKeys.lists() });
-
-            // Kichik kutish va keyin yangilangan document ni olish
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Yangilangan document ni olish
-            const updatedDoc = documents.find((doc: Document) => doc.id === id) ||
-                (await queryClient.fetchQuery({
-                    queryKey: documentKeys.detail(id),
-                    queryFn: async () => {
-                        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
-                        const docResponse = await fetch(`${API_BASE_URL}/documents/${id}`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                            },
-                        });
-                        const docData = await docResponse.json();
-                        return docData.data;
-                    },
-                }));
-
             // Tozalash
             setTimeout(() => {
                 window.URL.revokeObjectURL(blobUrl);
@@ -261,7 +239,51 @@ export default function DocumentList() {
             if (isTelegramWebApp) {
                 const sendViaBot = confirm('Faylni Telegram bot orqali yuborishni xohlaysizmi?');
                 if (sendViaBot) {
-                    await handleSendViaBot(id);
+                    // PDF path ni olish uchun document ni yangilash va kutish
+                    await queryClient.invalidateQueries({ queryKey: documentKeys.lists() });
+
+                    // PDF saqlanishini kutish (bir necha marta urinib ko'rish)
+                    let updatedDoc = null;
+                    let attempts = 0;
+                    const maxAttempts = 5;
+
+                    while (attempts < maxAttempts && !updatedDoc?.pdf_path) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+
+                        // API dan to'g'ridan-to'g'ri document ni olish
+                        updatedDoc = await queryClient.fetchQuery({
+                            queryKey: documentKeys.detail(id),
+                            queryFn: async () => {
+                                const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
+                                const docResponse = await fetch(`${API_BASE_URL}/documents/${id}`, {
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                    },
+                                });
+                                const docData = await docResponse.json();
+                                return docData.data;
+                            },
+                        });
+
+                        attempts++;
+
+                        if (updatedDoc?.pdf_path) {
+                            break;
+                        }
+                    }
+
+                    // PDF path mavjud bo'lsa, bot orqali yuborish
+                    if (updatedDoc?.pdf_path) {
+                        await handleSendViaBot(id);
+                    } else {
+                        const errorMsg = 'PDF fayl hali saqlanmagan. Iltimos, biroz kutib, qayta urinib ko\'ring.';
+                        if (isTelegramWebApp) {
+                            const webApp = (window as any).Telegram.WebApp;
+                            webApp.showAlert(errorMsg);
+                        } else {
+                            alert(errorMsg);
+                        }
+                    }
                 }
             }
         } catch (error) {
