@@ -48,6 +48,45 @@ export default function DocumentList() {
         router.push(`/documents/${id}`);
     };
 
+    const handleSendViaBot = async (id: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Avval tizimga kirishingiz kerak');
+                return;
+            }
+
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
+            
+            const response = await fetch(`${API_BASE_URL}/documents/${id}/send-via-bot`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Faylni yuborishda xatolik');
+            }
+
+            // Bildirishnoma ko'rsatish
+            const isTelegramWebApp = typeof window !== 'undefined' &&
+                (window as any).Telegram?.WebApp;
+            
+            if (isTelegramWebApp) {
+                showNotification('Fayl Telegram bot orqali yuborildi');
+            } else {
+                alert('Fayl Telegram bot orqali yuborildi');
+            }
+        } catch (error) {
+            console.error('Send via bot error:', error);
+            alert('Xatolik: ' + (error instanceof Error ? error.message : 'Faylni yuborishda xatolik'));
+        }
+    };
+
     const handleDownload = async (id: number) => {
         try {
             const token = localStorage.getItem('token');
@@ -56,12 +95,21 @@ export default function DocumentList() {
                 return;
             }
 
-            // Document ma'lumotlarini topish
-            const doc = documents.find((doc: Document) => doc.id === id);
-
             // Telegram WebApp mavjudligini tekshirish
             const isTelegramWebApp = typeof window !== 'undefined' &&
                 (window as any).Telegram?.WebApp;
+
+            // Telegram WebApp da bo'lsa, bot orqali yuborishni taklif qilish
+            if (isTelegramWebApp) {
+                const sendViaBot = confirm('Faylni Telegram bot orqali yuborishni xohlaysizmi?');
+                if (sendViaBot) {
+                    await handleSendViaBot(id);
+                    return;
+                }
+            }
+
+            // Document ma'lumotlarini topish
+            const doc = documents.find((doc: Document) => doc.id === id);
 
             // Agar PDF allaqachon saqlangan bo'lsa, public URL dan foydalanish
             // Bu Telegram WebApp da yaxshi ishlaydi
