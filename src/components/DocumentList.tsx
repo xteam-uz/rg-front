@@ -69,7 +69,9 @@ export default function DocumentList() {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Faylni yuborishda xatolik');
+                // Backend'dan kelgan aniq xatolik xabarini ko'rsatish
+                const errorMessage = data.message || 'Faylni yuborishda xatolik';
+                throw new Error(errorMessage);
             }
 
             // Bildirishnoma ko'rsatish
@@ -83,7 +85,18 @@ export default function DocumentList() {
             }
         } catch (error) {
             console.error('Send via bot error:', error);
-            alert('Xatolik: ' + (error instanceof Error ? error.message : 'Faylni yuborishda xatolik'));
+            const errorMessage = error instanceof Error ? error.message : 'Faylni yuborishda xatolik';
+            
+            // Telegram WebApp da bo'lsa, showAlert ishlatish
+            const isTelegramWebApp = typeof window !== 'undefined' &&
+                (window as any).Telegram?.WebApp;
+            
+            if (isTelegramWebApp) {
+                const webApp = (window as any).Telegram.WebApp;
+                webApp.showAlert(errorMessage);
+            } else {
+                alert('Xatolik: ' + errorMessage);
+            }
         }
     };
 
