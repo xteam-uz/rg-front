@@ -57,7 +57,7 @@ export default function DocumentList() {
             }
 
             const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
-            
+
             const response = await fetch(`${API_BASE_URL}/documents/${id}/send-via-bot`, {
                 method: 'POST',
                 headers: {
@@ -77,7 +77,7 @@ export default function DocumentList() {
             // Bildirishnoma ko'rsatish
             const isTelegramWebApp = typeof window !== 'undefined' &&
                 (window as any).Telegram?.WebApp;
-            
+
             if (isTelegramWebApp) {
                 showNotification('Fayl Telegram bot orqali yuborildi');
             } else {
@@ -86,11 +86,11 @@ export default function DocumentList() {
         } catch (error) {
             console.error('Send via bot error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Faylni yuborishda xatolik';
-            
+
             // Telegram WebApp da bo'lsa, showAlert ishlatish
             const isTelegramWebApp = typeof window !== 'undefined' &&
                 (window as any).Telegram?.WebApp;
-            
+
             if (isTelegramWebApp) {
                 const webApp = (window as any).Telegram.WebApp;
                 webApp.showAlert(errorMessage);
@@ -111,15 +111,6 @@ export default function DocumentList() {
             // Telegram WebApp mavjudligini tekshirish
             const isTelegramWebApp = typeof window !== 'undefined' &&
                 (window as any).Telegram?.WebApp;
-
-            // Telegram WebApp da bo'lsa, bot orqali yuborishni taklif qilish
-            if (isTelegramWebApp) {
-                const sendViaBot = confirm('Faylni Telegram bot orqali yuborishni xohlaysizmi?');
-                if (sendViaBot) {
-                    await handleSendViaBot(id);
-                    return;
-                }
-            }
 
             // Document ma'lumotlarini topish
             const doc = documents.find((doc: Document) => doc.id === id);
@@ -186,6 +177,14 @@ export default function DocumentList() {
                             document.body.removeChild(a);
                         }
                     }, 100);
+                }
+
+                // Fayl yuklab olgandan keyin, Telegram WebApp da bo'lsa bot orqali yuborishni taklif qilish
+                if (isTelegramWebApp) {
+                    const sendViaBot = confirm('Faylni Telegram bot orqali yuborishni xohlaysizmi?');
+                    if (sendViaBot) {
+                        await handleSendViaBot(id);
+                    }
                 }
                 return;
             }
@@ -302,6 +301,14 @@ export default function DocumentList() {
                         }
                     }, 100);
                 }
+
+                // Fayl yuklab olgandan keyin, Telegram WebApp da bo'lsa bot orqali yuborishni taklif qilish
+                if (isTelegramWebApp) {
+                    const sendViaBot = confirm('Faylni Telegram bot orqali yuborishni xohlaysizmi?');
+                    if (sendViaBot) {
+                        await handleSendViaBot(id);
+                    }
+                }
                 return;
             }
 
@@ -326,6 +333,14 @@ export default function DocumentList() {
                     document.body.removeChild(a);
                 }
             }, 2000);
+
+            // Fayl yuklab olgandan keyin, Telegram WebApp da bo'lsa bot orqali yuborishni taklif qilish
+            if (isTelegramWebApp) {
+                const sendViaBot = confirm('Faylni Telegram bot orqali yuborishni xohlaysizmi?');
+                if (sendViaBot) {
+                    await handleSendViaBot(id);
+                }
+            }
         } catch (error) {
             console.error('Download error:', error);
             alert('Xatolik: ' + (error instanceof Error ? error.message : 'PDF yuklab olishda xatolik'));
