@@ -33,9 +33,30 @@ export default function DocumentList() {
         if (confirm('Bu dokumentni o\'chirishni xohlaysizmi?')) {
             try {
                 await deleteMutation.mutateAsync(id);
+
+                // Muvaffaqiyatli o'chirilgandan keyin xabar ko'rsatish
+                const isTelegramWebApp = typeof window !== 'undefined' &&
+                    (window as any).Telegram?.WebApp;
+
+                if (isTelegramWebApp) {
+                    showNotification('Dokument muvaffaqiyatli o\'chirildi');
+                } else {
+                    alert('Dokument muvaffaqiyatli o\'chirildi');
+                }
             } catch (error) {
                 console.error('Delete error:', error);
-                alert('Xatolik: ' + (error instanceof Error ? error.message : 'Noma\'lum xatolik'));
+                const errorMessage = error instanceof Error ? error.message : 'Noma\'lum xatolik';
+
+                // Telegram WebApp da bo'lsa, showAlert ishlatish
+                const isTelegramWebApp = typeof window !== 'undefined' &&
+                    (window as any).Telegram?.WebApp;
+
+                if (isTelegramWebApp) {
+                    const webApp = (window as any).Telegram.WebApp;
+                    webApp.showAlert('Xatolik: ' + errorMessage);
+                } else {
+                    alert('Xatolik: ' + errorMessage);
+                }
             }
         }
     };
