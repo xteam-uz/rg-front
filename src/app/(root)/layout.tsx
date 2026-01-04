@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import React from 'react';
-import Navbar from '@/components/Navbar';
+// import Navbar from '@/components/Navbar';
 
 export const metadata: Metadata = {
     title: "References Home",
@@ -15,7 +15,7 @@ export default function Layout({ children }: Readonly<{
 }>) {
     return (
         <>
-            <Navbar />
+            {/* <Navbar /> */}
             {children}
         </>
     )
