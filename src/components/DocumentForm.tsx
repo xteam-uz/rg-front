@@ -227,12 +227,15 @@ export default function DocumentForm({ documentType, documentId }: DocumentFormP
                 });
                 setMessage('Muvaffaqiyatli yangilandi!');
                 setTimeout(() => {
-                    router.push('/documents');
-                }, 1500);
+                    router.push('/');
+                }, 300);
             } else {
                 // Create
                 await createMutation.mutateAsync(submitData);
                 setMessage('Muvaffaqiyatli qo\'shildi!');
+                setTimeout(() => {
+                    router.push('/');
+                }, 300);
                 // Formni tozalash
                 setFormData({
                     document_type: documentType,
