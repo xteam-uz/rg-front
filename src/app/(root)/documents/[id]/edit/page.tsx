@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAppSelector } from '@/store/hooks';
 import { useDocument } from '@/lib/queries/documents';
 import { useEffect } from 'react';
+import { BackButton } from '@twa-dev/sdk/react';
 
 export default function DocumentEditPage() {
     const router = useRouter();
@@ -52,6 +53,9 @@ export default function DocumentEditPage() {
                 </button>
             </div>
             <DocumentForm documentType={document.document_type} documentId={documentId} />
+            <>
+                <BackButton />
+            </>
         </div>
     );
 }

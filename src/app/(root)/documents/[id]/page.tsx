@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAppSelector } from '@/store/hooks';
 import { useEffect } from 'react';
 import { getStorageUrl } from '@/lib/api';
+import { BackButton } from '@twa-dev/sdk/react';
 
 export default function DocumentDetailPage() {
     const router = useRouter();
@@ -237,6 +238,9 @@ export default function DocumentDetailPage() {
                     </div>
                 )}
             </div>
+            <>
+                <BackButton />
+            </>
         </div>
     );
 }
