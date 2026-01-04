@@ -21,14 +21,14 @@ export default function ObyektivkaPage() {
 
     return (
         <div className="container mx-auto p-4 pb-20">
-            <div className="mb-4">
+            {/* <div className="mb-4">
                 <button
                     onClick={() => router.push('/documents')}
                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                 >
                     Orqaga
                 </button>
-            </div>
+            </div> */}
             <DocumentForm documentType="obyektivka" />
         </div>
     );
