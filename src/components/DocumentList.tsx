@@ -7,17 +7,17 @@ import { useDocuments, useDeleteDocument, documentKeys } from '@/lib/queries/doc
 import { Document } from '@/lib/types';
 import { useAppSelector } from '@/store/hooks';
 import { useRouter } from 'next/navigation';
-import { downloadFile, showNotification } from '@/lib/tgInit';
+import { showNotification } from '@/lib/tgInit';
 import { getStorageUrl } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoadingAnimation } from './LoadingAnimation';
+import { BottomBar, MainButton, SecondaryButton } from '@twa-dev/sdk/react';
 
 export default function DocumentList() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isAuthenticated, token, user } = useAppSelector((state) => state.auth);
     const isAdmin = user?.role === 'admin';
-    console.log(user);
     const [activeTab, setActiveTab] = useState<'all' | 'own'>('own');
 
     // Admin uchun filter parametri, admin bo'lmaganlar uchun undefined (backend o'zi filter qiladi)
@@ -335,9 +335,11 @@ export default function DocumentList() {
     };
 
     if (isLoading) {
-        <>
-            <LoadingAnimation />
-        </>
+        return (
+            <>
+                <LoadingAnimation />
+            </>
+        );
     }
 
     if (error) {
@@ -357,6 +359,8 @@ export default function DocumentList() {
                 Obyektivka qo'shish
             </button>
 
+            {/* TEST UCHUN KOD */}
+            {/* 
             {isAdmin && (
                 <div className="flex gap-2 mb-4">
                     <button
@@ -378,7 +382,8 @@ export default function DocumentList() {
                         Barcha dokumentlar
                     </button>
                 </div>
-            )}
+            )} */}
+            {/* TEST UCHUN KOD */}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {documents.length === 0 ? (
@@ -445,6 +450,27 @@ export default function DocumentList() {
                     ))
                 )}
             </div>
+
+
+            {isAdmin && (
+                <>
+                    <BottomBar bgColor="#ffffff">
+                        <MainButton
+                            color={activeTab === 'own' ? "#3b82f6" : "#e5e7eb"}
+                            textColor={activeTab === 'own' ? "#ffffff" : "#374151"}
+                            text="Mening dokumentlarim"
+                            onClick={() => setActiveTab('own')}
+                        />
+                        <SecondaryButton
+                            color={activeTab === 'all' ? "#3b82f6" : "#e5e7eb"}
+                            textColor={activeTab === 'all' ? "#ffffff" : "#374151"}
+                            text="Barcha dokumentlar"
+                            onClick={() => setActiveTab('all')}
+                            position="right"
+                        />
+                    </BottomBar>
+                </>
+            )}
         </div>
     );
 }
