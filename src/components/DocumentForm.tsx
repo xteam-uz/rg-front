@@ -373,7 +373,7 @@ export default function DocumentForm({ documentType, documentId }: DocumentFormP
                         type="file"
                         id="Rasm"
                         required={!documentId && !photoPreview}
-                        accept="image/jpg,image/jpeg,image/png"
+                        accept="image/jpg,image/jpeg,image/png,image/heic"
                         className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         onChange={handlePhotoChange}
                     />
