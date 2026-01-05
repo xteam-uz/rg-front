@@ -1,6 +1,6 @@
 // TanStack Query hooks - Documents uchun server-side data fetching
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Document, CreateDocumentDto, UpdateDocumentDto, ApiResponse } from '@/lib/types';
+import { Document, CreateDocumentDto, UpdateDocumentDto, ApiResponse, PaginatedResponse } from '@/lib/types';
 import { fetchData, postData, putData, deleteData } from '@/lib/api';
 import apiClient from '@/lib/api';
 
@@ -8,23 +8,26 @@ import apiClient from '@/lib/api';
 export const documentKeys = {
     all: ['documents'] as const,
     lists: () => [...documentKeys.all, 'list'] as const,
-    list: (filters?: string) => [...documentKeys.lists(), { filters }] as const,
+    list: (filters?: string, search?: string, page?: number) => [...documentKeys.lists(), { filters, search, page }] as const,
     details: () => [...documentKeys.all, 'detail'] as const,
     detail: (id: number) => [...documentKeys.details(), id] as const,
 };
 
 // GET - Barcha documents ni olish
-export function useDocuments(filter?: 'all' | 'own') {
+export function useDocuments(filter?: 'all' | 'own', search?: string, page: number = 1) {
     return useQuery({
-        queryKey: documentKeys.list(filter),
-        queryFn: async (): Promise<Document[]> => {
-            const url = filter ? `/documents?filter=${filter}` : '/documents';
-            const response = await fetchData<ApiResponse<Document[]>>(url);
-            if (Array.isArray(response.data)) {
-                return response.data;
-            }
-            return [];
+        queryKey: documentKeys.list(filter, search, page),
+        queryFn: async (): Promise<PaginatedResponse<Document>> => {
+            const params = new URLSearchParams();
+            if (filter) params.append('filter', filter);
+            if (search) params.append('search', search);
+            params.append('page', page.toString());
+
+            const url = `/documents?${params.toString()}`;
+            const response = await fetchData<ApiResponse<PaginatedResponse<Document>>>(url);
+            return response.data;
         },
+        placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
     });
 }
 

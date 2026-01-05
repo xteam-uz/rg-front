@@ -2,7 +2,7 @@
 
 // CLIENT COMPONENT - TanStack Query bilan server-side data fetching
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDocuments, useDeleteDocument, documentKeys } from '@/lib/queries/documents';
 import { Document } from '@/lib/types';
 import { useAppSelector } from '@/store/hooks';
@@ -12,6 +12,7 @@ import { getStorageUrl } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoadingAnimation } from './LoadingAnimation';
 import { BottomBar, MainButton, SecondaryButton } from '@twa-dev/sdk/react';
+import { EyeIcon, PencilSquareIcon, ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 export default function DocumentList() {
     const router = useRouter();
@@ -19,10 +20,37 @@ export default function DocumentList() {
     const { isAuthenticated, token, user } = useAppSelector((state) => state.auth);
     const isAdmin = user?.role === 'admin';
     const [activeTab, setActiveTab] = useState<'all' | 'own'>('own');
+    const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [page, setPage] = useState(1);
 
-    // Admin uchun filter parametri, admin bo'lmaganlar uchun undefined (backend o'zi filter qiladi)
+    console.log(`Is admin: ${isAdmin}, activeTab: ${activeTab}`);
+    // Debounce search input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1); // Reset to page 1 on new search
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    // Admin uchun filter parametri
     const filter = isAdmin ? activeTab : undefined;
-    const { data: documents = [], isLoading, error } = useDocuments(filter);
+
+    // Fetch documents with pagination and search
+    // Note: documents is now PaginatedResponse<Document>
+    const { data: documentsData, isLoading, error } = useDocuments(filter, debouncedSearch, page);
+
+    const documents = documentsData?.data || [];
+    const pagination = documentsData ? {
+        current_page: documentsData.current_page,
+        last_page: documentsData.last_page,
+        total: documentsData.total,
+        from: documentsData.from,
+        to: documentsData.to
+    } : null;
+
     const deleteMutation = useDeleteDocument();
 
     const handleObyektivkaClick = () => {
@@ -334,12 +362,12 @@ export default function DocumentList() {
         }
     };
 
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearch(e.target.value);
+    };
+
     if (isLoading) {
-        return (
-            <>
-                <LoadingAnimation />
-            </>
-        );
+        return <LoadingAnimation />;
     }
 
     if (error) {
@@ -351,17 +379,8 @@ export default function DocumentList() {
     }
 
     return (
-        <div className="container mx-auto p-4">
-            <button
-                onClick={handleObyektivkaClick}
-                className="block cursor-pointer w-full bg-green-500 text-white text-center py-3 px-4 mb-3 rounded-lg hover:bg-green-600 transition"
-            >
-                Obyektivka qo'shish
-            </button>
-
-            {/* TEST UCHUN KOD */}
-            {/* 
-            {isAdmin && (
+        <div className="container mx-auto p-4 pb-24">
+            {/* {isAdmin && (
                 <div className="flex gap-2 mb-4">
                     <button
                         onClick={() => setActiveTab('own')}
@@ -383,66 +402,89 @@ export default function DocumentList() {
                     </button>
                 </div>
             )} */}
-            {/* TEST UCHUN KOD */}
+            {activeTab === 'all' ? (
+                <div className="mb-4">
+                    <input
+                        type="text"
+                        placeholder="Qidirish: F.I.O, Tug'ilgan joy, Ma'lumot, Ish joyi..."
+                        value={search}
+                        onChange={handleSearchChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                </div>
+            ) : (
+                <button
+                    onClick={handleObyektivkaClick}
+                    className="block cursor-pointer w-full bg-green-500 text-white text-center py-3 px-4 mb-3 rounded-lg hover:bg-green-600 transition"
+                >
+                    Obyektivka qo'shish
+                </button>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {documents.length === 0 ? (
-                    <p className="text-gray-500 col-span-full text-center py-8">Ҳозирча документ йўқ</p>
+                    <p className="text-gray-500 col-span-full text-center py-8">
+                        {debouncedSearch ? 'So\'rov bo\'yicha hech narsa topilmadi' : 'Hozircha dokument yo\'q'}
+                    </p>
                 ) : (
                     documents.map((document: Document) => (
-                        <div key={document.id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition flex flex-col h-full">
+                        <div key={document.id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition flex flex-col h-full bg-white">
                             <div className="flex flex-col flex-1">
-                                <h3 className="text-lg font-semibold mb-2">
+                                <h3 className="text-lg font-semibold mb-2 line-clamp-2">
                                     {getDocumentTypeLabel(document.document_type)}
                                 </h3>
                                 {document.personal_information && (
                                     <div className="text-sm text-gray-600 mb-2 flex-1">
-                                        <p>
+                                        <p className="mb-1">
                                             <strong>Ф.И.Ш:</strong>{' '}
                                             {document.personal_information.familya}{' '}
                                             {document.personal_information.ism}{' '}
                                             {document.personal_information.sharif}
                                         </p>
-                                        <p>
+                                        <p className="mb-1">
                                             <strong>Тўғилган:</strong>{' '}
                                             {new Date(document.personal_information.tugilgan_sana).toLocaleDateString('uz-UZ')}{' '}
                                             ({document.personal_information.tugilgan_joyi})
                                         </p>
-                                        <p>
+                                        <p className="line-clamp-2">
                                             <strong>Маълумоти:</strong> {document.education_records?.[0]?.malumoti || 'Маълумот топилмади'}
                                         </p>
                                     </div>
                                 )}
-                                <p className="text-xs text-gray-400 mb-3">
+                                <p className="text-xs text-gray-400 mb-3 mt-1">
                                     Яратилган: {new Date(document.created_at).toLocaleDateString('uz-UZ')}
                                 </p>
 
                                 {/* actions */}
-                                <div className="flex flex-col gap-2 mt-auto">
+                                <div className="flex flex-row gap-2 mt-auto pt-4 border-t border-gray-100 justify-end">
                                     <button
                                         onClick={() => handleView(document.id)}
-                                        className="w-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                                        className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition"
+                                        title="Ko'rish"
                                     >
-                                        Кўриш
+                                        <EyeIcon className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={() => handleEdit(document.id)}
-                                        className="w-full px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
+                                        className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition"
+                                        title="Tahrirlash"
                                     >
-                                        Таҳрирлаш
+                                        <PencilSquareIcon className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={() => handleDownload(document.id)}
-                                        className="w-full px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                                        className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
+                                        title="Yuklab olish"
                                     >
-                                        Юклаб олиш
+                                        <ArrowDownTrayIcon className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(document.id)}
                                         disabled={deleteMutation.isPending}
-                                        className="w-full px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm disabled:opacity-50"
+                                        className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition disabled:opacity-50"
+                                        title="O'chirish"
                                     >
-                                        {deleteMutation.isPending ? '...' : 'Ўчириш'}
+                                        <TrashIcon className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
@@ -450,6 +492,30 @@ export default function DocumentList() {
                     ))
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {pagination && pagination.last_page > 1 && (
+                <div className="flex justify-center items-center gap-2 mb-20">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition"
+                    >
+                        Oldingi
+                    </button>
+                    <span className="text-sm text-gray-700">
+                        {pagination.current_page} / {pagination.last_page}
+                    </span>
+                    <button
+                        onClick={() => setPage(p => Math.min(pagination.last_page, p + 1))}
+                        disabled={page === pagination.last_page}
+                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition"
+                    >
+                        Keyingi
+                    </button>
+                </div>
+            )
+            }
 
 
             {isAdmin && (
