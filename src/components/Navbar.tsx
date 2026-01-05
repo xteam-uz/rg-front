@@ -7,11 +7,12 @@ import { useRouter } from 'next/navigation';
 import { logout } from '@/store/slices/authSlice';
 import { useAppDispatch } from '@/store/hooks';
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { RootState } from '@/store/store';
 
 export default function Navbar() {
     const dispatch = useAppDispatch();
     const router = useRouter();
-    const { isAuthenticated, token, user } = useAppSelector((state) => state.auth);
+    const { isAuthenticated, token, user } = useAppSelector((state: RootState) => state.auth);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
 
