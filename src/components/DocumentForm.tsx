@@ -139,6 +139,13 @@ export default function DocumentForm({ documentType, documentId }: DocumentFormP
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Fayl hajmini tekshirish (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Fayl hajmi 5MB dan oshmasligi kerak');
+                e.target.value = ''; // Inputni tozalash
+                return;
+            }
+
             setPhotoFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
