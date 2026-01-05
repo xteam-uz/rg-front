@@ -1,6 +1,6 @@
 // Redux Toolkit slice - Authentication uchun
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { postData } from '@/lib/api';
+import { postData, fetchData } from '@/lib/api';
 
 // Types
 export interface User {
@@ -84,6 +84,33 @@ export const logout = createAsyncThunk(
             localStorage.removeItem('user');
             return rejectWithValue(
                 error instanceof Error ? error.message : 'Logout xatolik'
+            );
+        }
+    }
+);
+
+// Fetch user from backend - bazadan yangi ma'lumotlarni olish uchun
+export const fetchUser = createAsyncThunk(
+    'auth/fetchUser',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await fetchData<{ success: boolean; data: { user: User }; message: string }>('/me');
+            if (response.success && response.data.user) {
+                // localStorage'ni yangilash
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                }
+                return response.data.user;
+            }
+            return rejectWithValue('User ma\'lumotlari topilmadi');
+        } catch (error) {
+            // Xatolik bo'lsa, token yaroqsiz bo'lishi mumkin
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+            return rejectWithValue(
+                error instanceof Error ? error.message : 'User ma\'lumotlarini yuklashda xatolik'
             );
         }
     }
@@ -196,6 +223,34 @@ const authSlice = createSlice({
                 state.token = null;
                 state.isAuthenticated = false;
                 state.error = action.payload as string;
+            });
+
+        // Fetch User
+        builder
+            .addCase(fetchUser.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchUser.fulfilled, (state, action: PayloadAction<User>) => {
+                state.loading = false;
+                state.user = action.payload;
+                state.isAuthenticated = true;
+                state.error = null;
+                // Token localStorage'da bo'lsa, saqlab qolamiz
+                if (typeof window !== 'undefined' && !state.token) {
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        state.token = token;
+                    }
+                }
+            })
+            .addCase(fetchUser.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+                // Xatolik bo'lsa, authentication'ni bekor qilish
+                state.user = null;
+                state.token = null;
+                state.isAuthenticated = false;
             });
     },
 });

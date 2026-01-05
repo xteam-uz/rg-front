@@ -2,8 +2,14 @@
 
 // TanStack Query Provider komponenti - Server-side data fetching uchun
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
+
+// DevTools ni dinamik import qilish - chunk loading xatolarini oldini olish uchun
+const ReactQueryDevtools = dynamic(
+    () => import('@tanstack/react-query-devtools').then((d) => d.ReactQueryDevtools),
+    { ssr: false }
+);
 
 export default function QueryProvider({
     children,

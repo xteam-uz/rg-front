@@ -16,7 +16,8 @@ export default function DocumentList() {
     const queryClient = useQueryClient();
     const { isAuthenticated, token, user } = useAppSelector((state) => state.auth);
     const isAdmin = user?.role === 'admin';
-    const [activeTab, setActiveTab] = useState<'all' | 'own'>('all');
+    console.log(user);
+    const [activeTab, setActiveTab] = useState<'all' | 'own'>('own');
 
     // Admin uchun filter parametri, admin bo'lmaganlar uchun undefined (backend o'zi filter qiladi)
     const filter = isAdmin ? activeTab : undefined;
@@ -358,8 +359,8 @@ export default function DocumentList() {
                     <button
                         onClick={() => setActiveTab('own')}
                         className={`flex-1 py-2 px-4 rounded-lg transition ${activeTab === 'own'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                     >
                         Dokumentlarim
@@ -367,8 +368,8 @@ export default function DocumentList() {
                     <button
                         onClick={() => setActiveTab('all')}
                         className={`flex-1 py-2 px-4 rounded-lg transition ${activeTab === 'all'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                     >
                         Barcha dokumentlar

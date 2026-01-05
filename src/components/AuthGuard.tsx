@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { fetchUser } from '@/store/slices/authSlice';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -15,7 +16,20 @@ const authRoutes = ['/login', '/register'];
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
   const { isAuthenticated, token } = useAppSelector((state) => state.auth);
+
+  // App ochilganda, agar token mavjud bo'lsa, bazadan yangi user ma'lumotlarini olish
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const tokenFromStorage = localStorage.getItem('token');
+
+    // Token mavjud bo'lsa, bazadan yangi user ma'lumotlarini olish (har doim yangilash)
+    if (tokenFromStorage) {
+      dispatch(fetchUser());
+    }
+  }, [dispatch]); // Faqat bir marta, app ochilganda
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -41,7 +55,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       router.replace('/');
       return;
     }
-  }, [pathname, isAuthenticated, token, router]);
+  }, [pathname, isAuthenticated, token, router, dispatch]);
 
   // Loading holatida hech narsa ko'rsatmaslik
   if (typeof window !== 'undefined') {
