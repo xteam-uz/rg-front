@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { downloadFile, showNotification } from '@/lib/tgInit';
 import { getStorageUrl } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
+import { LoadingAnimation } from './LoadingAnimation';
 
 export default function DocumentList() {
     const router = useRouter();
@@ -334,7 +335,9 @@ export default function DocumentList() {
     };
 
     if (isLoading) {
-        return <div className="p-4">Yuklanmoqda...</div>;
+        <>
+            <LoadingAnimation />
+        </>
     }
 
     if (error) {
