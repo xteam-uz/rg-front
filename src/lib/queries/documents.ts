@@ -127,6 +127,7 @@ export function useCreateDocument() {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
+                timeout: 60000, // 60 soniya (rasm yuklash uchun)
             });
             return response.data.data;
         },
@@ -244,6 +245,7 @@ export function useUpdateDocument() {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
+                timeout: 60000, // 60 soniya (rasm yuklash uchun)
             });
             return response.data.data;
         },
