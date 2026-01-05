@@ -7,6 +7,7 @@ import { useCreateDocument, useUpdateDocument, useDocument } from '@/lib/queries
 import { CreateDocumentDto, UpdateDocumentDto, Document, EducationLevel, RelativeType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { getStorageUrl } from '@/lib/api';
+import { BackButton } from '@twa-dev/sdk/react';
 
 interface DocumentFormProps {
     documentType: 'obyektivka' | 'ishga_olish_ariza' | 'kochirish_ariza';
@@ -916,6 +917,9 @@ export default function DocumentForm({ documentType, documentId }: DocumentFormP
                     {isPending ? 'Yuklanmoqda...' : (documentId ? 'Yangilash' : 'Tasdiqlash')}
                 </button>
             </form>
+            <>
+                <BackButton />
+            </>
         </div>
     );
 }
