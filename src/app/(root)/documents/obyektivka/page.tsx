@@ -4,10 +4,11 @@ import DocumentForm from '@/components/DocumentForm';
 import { useRouter } from 'next/navigation';
 import { useAppSelector } from '@/store/hooks';
 import { useEffect } from 'react';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function ObyektivkaPage() {
     const router = useRouter();
-    const { isAuthenticated, token } = useAppSelector((state) => state.auth);
+    const { isAuthenticated, token, loading } = useAppSelector((state) => state.auth);
 
     useEffect(() => {
         const tokenFromStorage = typeof window !== 'undefined'
@@ -18,6 +19,10 @@ export default function ObyektivkaPage() {
             router.push('/login');
         }
     }, [isAuthenticated, token, router]);
+
+    if (loading) {
+        return <LoadingAnimation />;
+    }
 
     return (
         <div className="container mx-auto p-4 pb-20">

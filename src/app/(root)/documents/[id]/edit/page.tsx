@@ -6,6 +6,7 @@ import { useAppSelector } from '@/store/hooks';
 import { useDocument } from '@/lib/queries/documents';
 import { useEffect } from 'react';
 import { BackButton } from '@twa-dev/sdk/react';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function DocumentEditPage() {
     const router = useRouter();
@@ -25,7 +26,7 @@ export default function DocumentEditPage() {
     }, [isAuthenticated, token, router]);
 
     if (isLoading) {
-        return <div className="container mx-auto p-4">Yuklanmoqda...</div>;
+        return <LoadingAnimation />;
     }
 
     if (!document) {

@@ -6,12 +6,13 @@ import { useAppSelector } from '@/store/hooks';
 import { useEffect } from 'react';
 import { getStorageUrl } from '@/lib/api';
 import { BackButton } from '@twa-dev/sdk/react';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function DocumentDetailPage() {
     const router = useRouter();
     const params = useParams();
     const documentId = Number(params.id);
-    const { isAuthenticated, token } = useAppSelector((state) => state.auth);
+    const { isAuthenticated, token, loading } = useAppSelector((state) => state.auth);
     const { data: document, isLoading, error } = useDocument(documentId);
 
     useEffect(() => {
@@ -37,8 +38,8 @@ export default function DocumentDetailPage() {
         }
     };
 
-    if (isLoading) {
-        return <div className="container mx-auto p-4">Yuklanmoqda...</div>;
+    if (isLoading || loading) {
+        return <LoadingAnimation />;
     }
 
     if (error || !document) {
