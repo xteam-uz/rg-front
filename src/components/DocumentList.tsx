@@ -24,7 +24,7 @@ export default function DocumentList() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [page, setPage] = useState(1);
 
-    console.log(`Is admin: ${isAdmin}, activeTab: ${activeTab}`);
+    // console.log(`Is admin: ${isAdmin}, activeTab: ${activeTab}`);
     // Debounce search input
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -526,6 +526,7 @@ export default function DocumentList() {
                             textColor={activeTab === 'own' ? "#ffffff" : "#374151"}
                             text="Meniki"
                             onClick={() => setActiveTab('own')}
+                            hasShineEffect={activeTab === 'all'}
                         />
                         <SecondaryButton
                             color={activeTab === 'all' ? "#3b82f6" : "#e5e7eb"}
@@ -533,6 +534,7 @@ export default function DocumentList() {
                             text="Barcha"
                             onClick={() => setActiveTab('all')}
                             position="right"
+                            hasShineEffect={activeTab === 'own'}
                         />
                     </BottomBar>
                 </>
