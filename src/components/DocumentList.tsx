@@ -344,6 +344,11 @@ export default function DocumentList() {
                 }
             }
         } catch (error) {
+            // Ignore WebAppPopupOpened error as it might happen when multiple popups are tried to be opened
+            if (error instanceof Error && error.message.includes('WebAppPopupOpened')) {
+                console.warn('WebAppPopupOpened error ignored:', error);
+                return;
+            }
             console.error('Download error:', error);
             alert('Xatolik: ' + (error instanceof Error ? error.message : 'PDF yuklab olishda xatolik'));
         }
