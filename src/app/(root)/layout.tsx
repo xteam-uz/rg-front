@@ -15,7 +15,7 @@ export default function Layout({ children }: Readonly<{
 }>) {
     return (
         <>
-            <Navbar />
+            {/* <Navbar /> */}
             {children}
         </>
     )
