@@ -14,11 +14,12 @@ export const documentKeys = {
 };
 
 // GET - Barcha documents ni olish
-export function useDocuments() {
+export function useDocuments(filter?: 'all' | 'own') {
     return useQuery({
-        queryKey: documentKeys.lists(),
+        queryKey: documentKeys.list(filter),
         queryFn: async (): Promise<Document[]> => {
-            const response = await fetchData<ApiResponse<Document[]>>('/documents');
+            const url = filter ? `/documents?filter=${filter}` : '/documents';
+            const response = await fetchData<ApiResponse<Document[]>>(url);
             if (Array.isArray(response.data)) {
                 return response.data;
             }

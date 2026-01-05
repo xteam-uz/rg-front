@@ -2,6 +2,7 @@
 
 // CLIENT COMPONENT - TanStack Query bilan server-side data fetching
 
+import { useState } from 'react';
 import { useDocuments, useDeleteDocument, documentKeys } from '@/lib/queries/documents';
 import { Document } from '@/lib/types';
 import { useAppSelector } from '@/store/hooks';
@@ -13,9 +14,14 @@ import { useQueryClient } from '@tanstack/react-query';
 export default function DocumentList() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { data: documents = [], isLoading, error } = useDocuments();
+    const { isAuthenticated, token, user } = useAppSelector((state) => state.auth);
+    const isAdmin = user?.role === 'admin';
+    const [activeTab, setActiveTab] = useState<'all' | 'own'>('all');
+
+    // Admin uchun filter parametri, admin bo'lmaganlar uchun undefined (backend o'zi filter qiladi)
+    const filter = isAdmin ? activeTab : undefined;
+    const { data: documents = [], isLoading, error } = useDocuments(filter);
     const deleteMutation = useDeleteDocument();
-    const { isAuthenticated, token } = useAppSelector((state) => state.auth);
 
     const handleObyektivkaClick = () => {
         const tokenFromStorage = typeof window !== 'undefined'
@@ -346,6 +352,29 @@ export default function DocumentList() {
             >
                 Obyektivka qo'shish
             </button>
+
+            {isAdmin && (
+                <div className="flex gap-2 mb-4">
+                    <button
+                        onClick={() => setActiveTab('own')}
+                        className={`flex-1 py-2 px-4 rounded-lg transition ${activeTab === 'own'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                    >
+                        Dokumentlarim
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('all')}
+                        className={`flex-1 py-2 px-4 rounded-lg transition ${activeTab === 'all'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                    >
+                        Barcha dokumentlar
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {documents.length === 0 ? (

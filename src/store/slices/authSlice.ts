@@ -10,6 +10,7 @@ export interface User {
     username?: string;
     email?: string;
     telegram_user_id: number;
+    role?: 'user' | 'admin';
     created_at: string;
     updated_at: string;
 }
