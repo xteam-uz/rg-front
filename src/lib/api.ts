@@ -93,7 +93,7 @@ apiClient.interceptors.response.use(
                 config: error.config,
                 request: error.request
             });
-            throw new Error(errorMessage);
+            // throw new Error(errorMessage);
         } else {
             // So'rovni sozlashda xatolik
             throw new Error(error.message || 'Xatolik yuz berdi');
