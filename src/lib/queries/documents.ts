@@ -123,7 +123,11 @@ export function useCreateDocument() {
                 }
             });
 
-            const response = await apiClient.post<ApiResponse<Document>>('/documents', formData);
+            const response = await apiClient.post<ApiResponse<Document>>('/documents', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             return response.data.data;
         },
         onSuccess: () => {
@@ -236,7 +240,11 @@ export function useUpdateDocument() {
                 });
             }
 
-            const response = await apiClient.put<ApiResponse<Document>>(`/documents/${id}`, formData);
+            const response = await apiClient.put<ApiResponse<Document>>(`/documents/${id}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             return response.data.data;
         },
         onSuccess: (data) => {
