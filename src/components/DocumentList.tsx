@@ -458,13 +458,13 @@ export default function DocumentList() {
                         <MainButton
                             color={activeTab === 'own' ? "#3b82f6" : "#e5e7eb"}
                             textColor={activeTab === 'own' ? "#ffffff" : "#374151"}
-                            text="Mening dokumentlarim"
+                            text="Meniki"
                             onClick={() => setActiveTab('own')}
                         />
                         <SecondaryButton
                             color={activeTab === 'all' ? "#3b82f6" : "#e5e7eb"}
                             textColor={activeTab === 'all' ? "#ffffff" : "#374151"}
-                            text="Barcha dokumentlar"
+                            text="Barcha"
                             onClick={() => setActiveTab('all')}
                             position="right"
                         />
