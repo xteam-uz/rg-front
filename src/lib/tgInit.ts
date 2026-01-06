@@ -21,18 +21,24 @@ export const initTelegramApp = () => {
     WebApp.ready();
 };
 
+// export const getUserData = () => {
+//     const WebApp = getWebApp();
+
+//     // Agar WebApp mavjud bo'lmasa (local development), test userni qaytarish
+//     if (!WebApp || !WebApp.initDataUnsafe?.user) {
+//         if (process.env.NODE_ENV === 'development') {
+//             return testGetUserData();
+//         }
+//         return null;
+//     }
+
+//     return WebApp.initDataUnsafe.user;
+// };
+
 export const getUserData = () => {
     const WebApp = getWebApp();
-
-    // Agar WebApp mavjud bo'lmasa (local development), test userni qaytarish
-    if (!WebApp || !WebApp.initDataUnsafe?.user) {
-        if (process.env.NODE_ENV === 'development') {
-            return testGetUserData();
-        }
-        return null;
-    }
-
-    return WebApp.initDataUnsafe.user;
+    if (!WebApp) return null;
+    return WebApp.initDataUnsafe?.user || null;
 };
 
 export const testGetUserData = () => {
