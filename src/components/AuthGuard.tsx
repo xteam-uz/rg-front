@@ -12,7 +12,7 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, loading, error } = useAppSelector((state) => state.auth);
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
@@ -94,6 +94,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
         <p className="text-red-500 mb-4">Tizimga kirishda xatolik yuz berdi.</p>
+        {loading === false && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600 max-w-md break-words">
+            {/* Redux state error or specific message */}
+            {String(error || 'Noma\'lum xatolik')}
+          </div>
+        )}
         <button
           onClick={() => window.location.reload()}
           className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow active:bg-blue-600 transition-colors"

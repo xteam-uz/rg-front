@@ -65,8 +65,8 @@ apiClient.interceptors.response.use(
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    // Login sahifasiga yuborish
-                    window.location.href = '/login';
+                    // Login sahifasiga redirect QILINMAYDI
+                    // AuthGuard o'zi qayta login qilishni hal qiladi
                 }
             }
             // Server xatolik javob berdi
