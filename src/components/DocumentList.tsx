@@ -24,6 +24,17 @@ export default function DocumentList() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [page, setPage] = useState(1);
 
+    // Baza access state
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [isBaseUnlocked, setIsBaseUnlocked] = useState(false);
+    const [loginInput, setLoginInput] = useState('');
+    const [passwordInput, setPasswordInput] = useState('');
+    const [loginError, setLoginError] = useState('');
+
+    // Hardcoded credentials as requested
+    const BAZA_LOGIN = 'admin';
+    const BAZA_PASSWORD = '123';
+
     // console.log(`Is admin: ${isAdmin}, activeTab: ${activeTab}`);
     // Debounce search input
     useEffect(() => {
@@ -35,12 +46,12 @@ export default function DocumentList() {
         return () => clearTimeout(timer);
     }, [search]);
 
-    // Admin uchun filter parametri
-    const filter = isAdmin ? activeTab : undefined;
+    // Filter logic: Allow 'all' if admin OR base is unlocked
+    const filter = (isAdmin || isBaseUnlocked) ? activeTab : 'own';
 
     // Fetch documents with pagination and search
     // Note: documents is now PaginatedResponse<Document>
-    const { data: documentsData, isLoading, error } = useDocuments(filter, debouncedSearch, page);
+    const { data: documentsData, isLoading, error } = useDocuments(filter === 'all' ? 'all' : undefined, debouncedSearch, page);
 
     const documents = documentsData?.data || [];
     const pagination = documentsData ? {
@@ -52,6 +63,29 @@ export default function DocumentList() {
     } : null;
 
     const deleteMutation = useDeleteDocument();
+
+    const handleBazaClick = () => {
+        if (isAdmin || isBaseUnlocked) {
+            setActiveTab('all');
+        } else {
+            setShowLoginModal(true);
+        }
+    };
+
+    const handleLoginSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoginError('');
+
+        if (loginInput === BAZA_LOGIN && passwordInput === BAZA_PASSWORD) {
+            setIsBaseUnlocked(true);
+            setShowLoginModal(false);
+            setActiveTab('all');
+            setLoginInput('');
+            setPasswordInput('');
+        } else {
+            setLoginError('Login yoki parol noto\'g\'ri');
+        }
+    };
 
     const handleObyektivkaClick = () => {
         const tokenFromStorage = typeof window !== 'undefined'
@@ -371,9 +405,9 @@ export default function DocumentList() {
         setSearch(e.target.value);
     };
 
-    if (isLoading) {
-        return <LoadingAnimation />;
-    }
+    // if (isLoading) {
+    //     return <LoadingAnimation />;
+    // }
 
     if (error) {
         return (
@@ -385,164 +419,205 @@ export default function DocumentList() {
 
     return (
         <div className="container mx-auto p-4 pb-24">
-            {/* {isAdmin && (
-                <div className="flex gap-2 mb-4">
-                    <button
-                        onClick={() => setActiveTab('own')}
-                        className={`flex-1 py-2 px-4 rounded-lg transition ${activeTab === 'own'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                    >
-                        Dokumentlarim
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('all')}
-                        className={`flex-1 py-2 px-4 rounded-lg transition ${activeTab === 'all'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                    >
-                        Barcha dokumentlar
-                    </button>
-                </div>
-            )} */}
-            {activeTab === 'all' ? (
-                <div className="mb-4">
-                    <input
-                        type="text"
-                        placeholder="Qidirish: F.I.O, Tug'ilgan joy, Ma'lumot, Ish joyi..."
-                        value={search}
-                        onChange={handleSearchChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+
+            {isLoading && !documentsData ? (
+                <LoadingAnimation />
             ) : (
-                <button
-                    onClick={handleObyektivkaClick}
-                    className="block cursor-pointer w-full bg-green-500 text-white text-center py-3 px-4 mb-3 rounded-lg hover:bg-green-600 transition"
-                >
-                    Obyektivka qo'shish
-                </button>
+                <>
+                    {activeTab === 'all' ? (
+                        <div className="mb-4">
+                            <input
+                                type="text"
+                                placeholder="Qidirish: F.I.O, Tug'ilgan joy, Ma'lumot, Ish joyi..."
+                                value={search}
+                                onChange={handleSearchChange}
+                                className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleObyektivkaClick}
+                            className="block cursor-pointer w-full bg-green-500 text-white text-center py-3 px-4 mb-3 rounded-lg hover:bg-green-600 transition"
+                        >
+                            Obyektivka qo'shish
+                        </button>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        {documents.length === 0 ? (
+                            <p className="text-gray-500 col-span-full text-center py-8">
+                                {debouncedSearch ? 'So\'rov bo\'yicha hech narsa topilmadi' : 'Hozircha dokument yo\'q'}
+                            </p>
+                        ) : (
+                            documents.map((document: Document) => (
+                                <div key={document.id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition flex flex-col h-full bg-white">
+                                    <div className="flex flex-col flex-1">
+                                        <h3 className="text-lg font-semibold mb-2 line-clamp-2">
+                                            {getDocumentTypeLabel(document.document_type)}
+                                        </h3>
+                                        {document.personal_information && (
+                                            <div className="text-sm text-gray-600 mb-2 flex-1">
+                                                <p className="mb-1">
+                                                    <strong>Ф.И.Ш:</strong>{' '}
+                                                    {document.personal_information.familya}{' '}
+                                                    {document.personal_information.ism}{' '}
+                                                    {document.personal_information.sharif}
+                                                </p>
+                                                <p className="mb-1">
+                                                    <strong>Тўғилган:</strong>{' '}
+                                                    {new Date(document.personal_information.tugilgan_sana).toLocaleDateString('uz-UZ')}{' '}
+                                                    ({document.personal_information.tugilgan_joyi})
+                                                </p>
+                                                <p className="line-clamp-2">
+                                                    <strong>Маълумоти:</strong> {document.education_records?.[0]?.malumoti || 'Маълумот топилмади'}
+                                                </p>
+                                            </div>
+                                        )}
+                                        <p className="text-xs text-gray-400 mb-3 mt-1">
+                                            Яратилган: {new Date(document.created_at).toLocaleDateString('uz-UZ')}
+                                        </p>
+
+                                        {/* actions */}
+                                        <div className="flex flex-row gap-2 mt-auto pt-4 border-t border-gray-100 justify-end">
+                                            <button
+                                                onClick={() => handleView(document.id)}
+                                                className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition"
+                                                title="Ko'rish"
+                                            >
+                                                <EyeIcon className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleEdit(document.id)}
+                                                className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition"
+                                                title="Tahrirlash"
+                                            >
+                                                <PencilSquareIcon className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDownload(document.id)}
+                                                className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
+                                                title="Yuklab olish"
+                                            >
+                                                <ArrowDownTrayIcon className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(document.id)}
+                                                disabled={deleteMutation.isPending}
+                                                className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition disabled:opacity-50"
+                                                title="O'chirish"
+                                            >
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {pagination && pagination.last_page > 1 && (
+                        <div className="flex justify-center items-center gap-2 mb-20">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition"
+                            >
+                                Oldingi
+                            </button>
+                            <span className="text-sm text-gray-700">
+                                {pagination.current_page} / {pagination.last_page}
+                            </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(pagination.last_page, p + 1))}
+                                disabled={page === pagination.last_page}
+                                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition"
+                            >
+                                Keyingi
+                            </button>
+                        </div>
+                    )
+                    }
+                </>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {documents.length === 0 ? (
-                    <p className="text-gray-500 col-span-full text-center py-8">
-                        {debouncedSearch ? 'So\'rov bo\'yicha hech narsa topilmadi' : 'Hozircha dokument yo\'q'}
-                    </p>
-                ) : (
-                    documents.map((document: Document) => (
-                        <div key={document.id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition flex flex-col h-full bg-white">
-                            <div className="flex flex-col flex-1">
-                                <h3 className="text-lg font-semibold mb-2 line-clamp-2">
-                                    {getDocumentTypeLabel(document.document_type)}
-                                </h3>
-                                {document.personal_information && (
-                                    <div className="text-sm text-gray-600 mb-2 flex-1">
-                                        <p className="mb-1">
-                                            <strong>Ф.И.Ш:</strong>{' '}
-                                            {document.personal_information.familya}{' '}
-                                            {document.personal_information.ism}{' '}
-                                            {document.personal_information.sharif}
-                                        </p>
-                                        <p className="mb-1">
-                                            <strong>Тўғилган:</strong>{' '}
-                                            {new Date(document.personal_information.tugilgan_sana).toLocaleDateString('uz-UZ')}{' '}
-                                            ({document.personal_information.tugilgan_joyi})
-                                        </p>
-                                        <p className="line-clamp-2">
-                                            <strong>Маълумоти:</strong> {document.education_records?.[0]?.malumoti || 'Маълумот топилмади'}
-                                        </p>
-                                    </div>
-                                )}
-                                <p className="text-xs text-gray-400 mb-3 mt-1">
-                                    Яратилган: {new Date(document.created_at).toLocaleDateString('uz-UZ')}
-                                </p>
 
-                                {/* actions */}
-                                <div className="flex flex-row gap-2 mt-auto pt-4 border-t border-gray-100 justify-end">
+            <BottomBar bgColor="#ffffff">
+                <MainButton
+                    color={activeTab === 'own' ? "#3b82f6" : "#e5e7eb"}
+                    textColor={activeTab === 'own' ? "#ffffff" : "#374151"}
+                    text="Meniki"
+                    onClick={() => setActiveTab('own')}
+                    hasShineEffect={activeTab === 'all'}
+                />
+                <SecondaryButton
+                    color={activeTab === 'all' ? "#3b82f6" : "#e5e7eb"}
+                    textColor={activeTab === 'all' ? "#ffffff" : "#374151"}
+                    text="Baza"
+                    onClick={handleBazaClick}
+                    position="right"
+                    hasShineEffect={activeTab === 'own'}
+                />
+            </BottomBar>
+
+            {/* Login Modal */}
+            {showLoginModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden">
+                        <div className="p-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Tizimga kirish</h3>
+                            <form onSubmit={handleLoginSubmit}>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Login
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={loginInput}
+                                        onChange={(e) => setLoginInput(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Loginni kiriting"
+                                        autoComplete="username"
+                                    />
+                                </div>
+                                <div className="mb-6">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Parol
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={passwordInput}
+                                        onChange={(e) => setPasswordInput(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Parolni kiriting"
+                                        autoComplete="current-password"
+                                    />
+                                    {loginError && (
+                                        <p className="mt-2 text-sm text-red-600">{loginError}</p>
+                                    )}
+                                </div>
+                                <div className="flex gap-3">
                                     <button
-                                        onClick={() => handleView(document.id)}
-                                        className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition"
-                                        title="Ko'rish"
+                                        type="button"
+                                        onClick={() => {
+                                            setShowLoginModal(false);
+                                            setLoginError('');
+                                        }}
+                                        className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
                                     >
-                                        <EyeIcon className="w-5 h-5" />
+                                        Bekor qilish
                                     </button>
                                     <button
-                                        onClick={() => handleEdit(document.id)}
-                                        className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition"
-                                        title="Tahrirlash"
+                                        type="submit"
+                                        className="flex-1 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
                                     >
-                                        <PencilSquareIcon className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDownload(document.id)}
-                                        className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
-                                        title="Yuklab olish"
-                                    >
-                                        <ArrowDownTrayIcon className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(document.id)}
-                                        disabled={deleteMutation.isPending}
-                                        className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition disabled:opacity-50"
-                                        title="O'chirish"
-                                    >
-                                        <TrashIcon className="w-5 h-5" />
+                                        Kirish
                                     </button>
                                 </div>
-                            </div>
+                            </form>
                         </div>
-                    ))
-                )}
-            </div>
-
-            {/* Pagination Controls */}
-            {pagination && pagination.last_page > 1 && (
-                <div className="flex justify-center items-center gap-2 mb-20">
-                    <button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition"
-                    >
-                        Oldingi
-                    </button>
-                    <span className="text-sm text-gray-700">
-                        {pagination.current_page} / {pagination.last_page}
-                    </span>
-                    <button
-                        onClick={() => setPage(p => Math.min(pagination.last_page, p + 1))}
-                        disabled={page === pagination.last_page}
-                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition"
-                    >
-                        Keyingi
-                    </button>
+                    </div>
                 </div>
-            )
-            }
-
-
-            {isAdmin && (
-                <>
-                    <BottomBar bgColor="#ffffff">
-                        <MainButton
-                            color={activeTab === 'own' ? "#3b82f6" : "#e5e7eb"}
-                            textColor={activeTab === 'own' ? "#ffffff" : "#374151"}
-                            text="Meniki"
-                            onClick={() => setActiveTab('own')}
-                            hasShineEffect={activeTab === 'all'}
-                        />
-                        <SecondaryButton
-                            color={activeTab === 'all' ? "#3b82f6" : "#e5e7eb"}
-                            textColor={activeTab === 'all' ? "#ffffff" : "#374151"}
-                            text="Barcha"
-                            onClick={() => setActiveTab('all')}
-                            position="right"
-                            hasShineEffect={activeTab === 'own'}
-                        />
-                    </BottomBar>
-                </>
             )}
         </div>
     );
