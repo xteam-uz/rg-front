@@ -622,4 +622,3 @@ export default function DocumentList() {
         </div>
     );
 }
-
