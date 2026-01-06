@@ -23,9 +23,31 @@ export const initTelegramApp = () => {
 
 export const getUserData = () => {
     const WebApp = getWebApp();
-    if (!WebApp) return null;
-    return WebApp.initDataUnsafe?.user || null;
+
+    // Agar WebApp mavjud bo'lmasa (local development), test userni qaytarish
+    if (!WebApp || !WebApp.initDataUnsafe?.user) {
+        if (process.env.NODE_ENV === 'development') {
+            return testGetUserData();
+        }
+        return null;
+    }
+
+    return WebApp.initDataUnsafe.user;
 };
+
+export const testGetUserData = () => {
+    return {
+        id: 893968025265,
+        first_name: "Test",
+        last_name: "User",
+        username: "test_user",
+        language_code: "uz",
+        is_premium: false,
+        allows_write_to_pm: true,
+    };
+};
+
+
 
 export const sendDataToBot = (data: unknown) => {
     const WebApp = getWebApp();
@@ -69,7 +91,7 @@ export const downloadFile = (url: string, filename: string) => {
         document.body.removeChild(a);
         return;
     }
-    
+
     // Telegram WebApp da fayl yuklash
     // openLink metodi Telegram da faylni yuklab olish uchun ishlatiladi
     WebApp.openLink(url);

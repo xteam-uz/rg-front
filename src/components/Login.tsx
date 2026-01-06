@@ -53,7 +53,7 @@ export default function Login() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            router.push('/references');
+            router.push('/');
         }
     }, [isAuthenticated, router]);
 

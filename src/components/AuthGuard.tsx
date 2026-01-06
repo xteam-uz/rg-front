@@ -1,76 +1,108 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { fetchUser } from '@/store/slices/authSlice';
+import { fetchUser, register } from '@/store/slices/authSlice';
+import { getUserData } from '@/lib/tgInit';
+import { LoadingAnimation } from './LoadingAnimation';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
-// Protected route'lar ro'yxati
-const protectedRoutes = ['/references', '/documents'];
-const authRoutes = ['/login', '/register'];
-
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const router = useRouter();
-  const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const { isAuthenticated, token } = useAppSelector((state) => state.auth);
-
-  // App ochilganda, agar token mavjud bo'lsa, bazadan yangi user ma'lumotlarini olish
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const tokenFromStorage = localStorage.getItem('token');
-
-    // Token mavjud bo'lsa, bazadan yangi user ma'lumotlarini olish (har doim yangilash)
-    if (tokenFromStorage) {
-      dispatch(fetchUser());
-    }
-  }, [dispatch]); // Faqat bir marta, app ochilganda
+  const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Token tekshirish
-    const tokenFromStorage = localStorage.getItem('token');
-
-    const isProtectedRoute = protectedRoutes.some(route =>
-      pathname?.startsWith(route)
-    );
-    const isAuthRoute = authRoutes.some(route =>
-      pathname?.startsWith(route)
-    );
-
-    // Agar token yo'q bo'lsa va protected route bo'lsa, login page'ga yuborish
-    if (isProtectedRoute && !tokenFromStorage && !isAuthenticated) {
-      router.replace('/login');
-      return;
-    }
-
-    // Agar token bo'lsa va auth route'da bo'lsa, root page'ga yuborish
-    if (isAuthRoute && (tokenFromStorage || isAuthenticated)) {
-      router.replace('/');
-      return;
-    }
-  }, [pathname, isAuthenticated, token, router, dispatch]);
-
-  // Loading holatida hech narsa ko'rsatmaslik
-  if (typeof window !== 'undefined') {
-    const isProtectedRoute = protectedRoutes.some(route =>
-      pathname?.startsWith(route)
-    );
-
-    if (isProtectedRoute) {
-      const tokenFromStorage = localStorage.getItem('token');
-      if (!tokenFromStorage && !isAuthenticated) {
-        return null; // Login page'ga redirect qilinmoqda
+    const initAuth = async () => {
+      // 1. Agar allaqachon login qilingan bo'lsa
+      if (isAuthenticated) {
+        setIsInitializing(false);
+        return;
       }
+
+      // 2. LocalStorage da token borligini tekshirish
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await dispatch(fetchUser()).unwrap();
+        } catch (error) {
+          // Token yaroqsiz bo'lsa, Telegram orqali qayta urinib ko'ramiz
+          console.error('Token validation failed:', error);
+          handleTelegramAuth();
+          return;
+        } finally {
+          setIsInitializing(false);
+        }
+        return;
+      }
+
+      // 3. Token yo'q bo'lsa, Telegram orqali login qilish
+      handleTelegramAuth();
+    };
+
+    const handleTelegramAuth = async () => {
+      const tgUser = getUserData();
+
+      if (tgUser) {
+        try {
+          await dispatch(register({
+            telegram_user_id: tgUser.id,
+            first_name: tgUser.first_name,
+            last_name: tgUser.last_name,
+            username: tgUser.username,
+          })).unwrap();
+        } catch (error) {
+          console.error('Telegram auth failed:', error);
+        }
+      }
+      setIsInitializing(false);
+    };
+
+    if (typeof window !== 'undefined') {
+      initAuth();
     }
+  }, [dispatch, isAuthenticated]);
+
+  if (isInitializing || (loading && !isAuthenticated)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <LoadingAnimation />
+      </div>
+    );
+  }
+
+  // Telegramda ochilmagan bo'lsa va login qilinmagan bo'lsa
+  if (!isAuthenticated && !loading) {
+    const tgUser = typeof window !== 'undefined' ? getUserData() : null;
+
+    if (!tgUser) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+          <p className="text-lg text-gray-600 mb-4">
+            Ushbu ilova faqat Telegram orqali ishlaydi.
+          </p>
+          <div className="p-4 bg-gray-100 rounded-lg text-sm text-gray-500 font-mono">
+            Debug info: No WebApp data found
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        <p className="text-red-500 mb-4">Tizimga kirishda xatolik yuz berdi.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow active:bg-blue-600 transition-colors"
+        >
+          Qayta urinish
+        </button>
+      </div>
+    );
   }
 
   return <>{children}</>;
 }
-
