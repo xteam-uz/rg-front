@@ -41,17 +41,17 @@ export const getUserData = () => {
     return WebApp.initDataUnsafe?.user || null;
 };
 
-export const testGetUserData = () => {
-    return {
-        id: 893968025265,
-        first_name: "Test",
-        last_name: "User",
-        username: "test_user",
-        language_code: "uz",
-        is_premium: false,
-        allows_write_to_pm: true,
-    };
-};
+// export const testGetUserData = () => {
+//     return {
+//         id: 89398025265,
+//         first_name: "Test",
+//         last_name: "User",
+//         username: "test_user",
+//         language_code: "uz",
+//         is_premium: false,
+//         allows_write_to_pm: true,
+//     };
+// };
 
 
 

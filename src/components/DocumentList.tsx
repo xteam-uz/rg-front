@@ -8,7 +8,7 @@ import { Document } from '@/lib/types';
 import { useAppSelector } from '@/store/hooks';
 import { useRouter } from 'next/navigation';
 import { showNotification } from '@/lib/tgInit';
-import { getStorageUrl } from '@/lib/api';
+import { getStorageUrl, postData } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoadingAnimation } from './LoadingAnimation';
 import { BottomBar, MainButton, SecondaryButton } from '@twa-dev/sdk/react';
@@ -30,10 +30,17 @@ export default function DocumentList() {
     const [loginInput, setLoginInput] = useState('');
     const [passwordInput, setPasswordInput] = useState('');
     const [loginError, setLoginError] = useState('');
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-    // Hardcoded credentials as requested
-    const BAZA_LOGIN = 'admin';
-    const BAZA_PASSWORD = '123';
+    // Check if baza token exists in localStorage on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const bazaToken = localStorage.getItem('baza_access_token');
+            if (bazaToken) {
+                setIsBaseUnlocked(true);
+            }
+        }
+    }, []);
 
     // console.log(`Is admin: ${isAdmin}, activeTab: ${activeTab}`);
     // Debounce search input
@@ -72,18 +79,47 @@ export default function DocumentList() {
         }
     };
 
-    const handleLoginSubmit = (e: React.FormEvent) => {
+    const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoginError('');
+        setIsLoggingIn(true);
 
-        if (loginInput === BAZA_LOGIN && passwordInput === BAZA_PASSWORD) {
-            setIsBaseUnlocked(true);
-            setShowLoginModal(false);
-            setActiveTab('all');
-            setLoginInput('');
-            setPasswordInput('');
-        } else {
-            setLoginError('Login yoki parol noto\'g\'ri');
+        try {
+            const response = await postData<{ success: boolean; message: string; data: { token: string } }>(
+                '/baza-login',
+                {
+                    login: loginInput,
+                    password: passwordInput,
+                }
+            );
+
+            if (response.success && response.data?.token) {
+                // Token'ni localStorage'da saqlash
+                localStorage.setItem('baza_access_token', response.data.token);
+                setIsBaseUnlocked(true);
+                setShowLoginModal(false);
+                setActiveTab('all');
+                setLoginInput('');
+                setPasswordInput('');
+
+                // Cache'ni invalidate qilish - yangi documentlar ko'rsatilsin
+                queryClient.invalidateQueries({ queryKey: documentKeys.lists() });
+
+                // Notification
+                const isTelegramWebApp = typeof window !== 'undefined' &&
+                    (window as any).Telegram?.WebApp;
+                if (isTelegramWebApp) {
+                    showNotification('Baza ga muvaffaqiyatli kirdingiz');
+                }
+            } else {
+                setLoginError('Login yoki parol noto\'g\'ri');
+            }
+        } catch (error) {
+            console.error('Baza login error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Login yoki parol noto\'g\'ri';
+            setLoginError(errorMessage);
+        } finally {
+            setIsLoggingIn(false);
         }
     };
 
@@ -560,6 +596,28 @@ export default function DocumentList() {
                 />
             </BottomBar>
 
+            {/* Oddiy button'lar */}
+            {/* <div className="fixed bottom-20 left-0 right-0 bg-white p-4 border-t border-gray-200 flex gap-3 z-40">
+                <button
+                    onClick={() => setActiveTab('own')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition ${activeTab === 'own'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700'
+                        }`}
+                >
+                    Meniki
+                </button>
+                <button
+                    onClick={handleBazaClick}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition ${activeTab === 'all'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700'
+                        }`}
+                >
+                    Baza
+                </button>
+            </div> */}
+
             {/* Login Modal */}
             {showLoginModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
@@ -609,9 +667,10 @@ export default function DocumentList() {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-1 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
+                                        disabled={isLoggingIn}
+                                        className="flex-1 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Kirish
+                                        {isLoggingIn ? 'Kirilmoqda...' : 'Kirish'}
                                     </button>
                                 </div>
                             </form>

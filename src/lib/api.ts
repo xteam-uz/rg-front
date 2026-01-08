@@ -46,6 +46,12 @@ apiClient.interceptors.request.use(
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
+            
+            // Baza access token'ni header sifatida qo'shish
+            const bazaToken = localStorage.getItem('baza_access_token');
+            if (bazaToken) {
+                config.headers['X-Baza-Access-Token'] = bazaToken;
+            }
         }
         return config;
     },
